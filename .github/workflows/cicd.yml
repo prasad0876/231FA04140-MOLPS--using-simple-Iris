@@ -1,0 +1,93 @@
+name: ML CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+
+# ============================
+# CI - TRAIN AND TEST
+# ============================
+
+jobs:
+
+  test:
+
+    name: CI - Train and Test ML Model
+
+    runs-on: ubuntu-24.04
+
+    steps:
+
+      - name: Checkout source code
+        uses: actions/checkout@v7
+
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+
+      - name: Train and run ML model
+        run: |
+          python model.py
+
+
+      - name: Run automated tests
+        run: |
+          pytest -v
+
+
+# ============================
+# CD - DEPLOY TO GITHUB PAGES
+# ============================
+
+  deploy:
+
+    name: CD - Deploy ML Dashboard
+
+    needs: test
+
+    runs-on: ubuntu-24.04
+
+    environment:
+
+      name: github-pages
+
+      url: ${{ steps.deployment.outputs.page_url }}
+
+
+    steps:
+
+      - name: Checkout source code
+        uses: actions/checkout@v7
+
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: .
+
+
+      - name: Deploy website
+        id: deployment
+        uses: actions/deploy-pages@v4
